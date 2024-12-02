@@ -1,0 +1,10 @@
+#!/bin/zsh
+
+printf -v day 'day%02d' $1
+
+if [[ ! -f src/$day.zig ]] then
+    echo "File not found."
+    exit 64
+fi
+
+(cd src && zig run $day.zig)
