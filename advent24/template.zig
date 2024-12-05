@@ -3,10 +3,8 @@ const std = @import("std");
 const data = @embedFile("data/$.txt");
 
 pub fn main() !void {
-    // get output writer
     const stdout = std.io.getStdOut().writer();
 
-    // allocator for heap
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
     defer _ = gpa.deinit();
