@@ -47,6 +47,7 @@ pub fn main() !void {
     try stdout.print("1: {d}\n", .{out1});
 
     // part 2
+    const print: bool = true;
     var elapsed: usize = 0;
     outer: while (true) {
         elapsed += 1;
@@ -65,7 +66,22 @@ pub fn main() !void {
                 }
             }
         }
-        if (elapsed > 6911) break; // second time around works (??)
+
+        if (print) {
+            try stdout.print("\n{d}\n", .{elapsed});
+            for (0..y_max) |y| {
+                for (0..x_max) |x| {
+                    const out: u8 = if (counts[x][y] == 1) '0' else '.';
+                    try stdout.print("{c}", .{out});
+                }
+                try stdout.print("\n", .{});
+            }
+            try stdout.print("\n", .{});
+        }
+
+        if (elapsed > 6911) {
+            break;
+        }
     }
 
     const out2: usize = elapsed;
