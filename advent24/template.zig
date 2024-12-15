@@ -5,9 +5,9 @@ const data = @embedFile("data/$.txt");
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
 
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const allocator = gpa.allocator();
-    defer _ = gpa.deinit();
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer _ = arena.deinit();
 
     // part 1
     const out1: usize = 0;

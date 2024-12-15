@@ -1,22 +1,18 @@
 const std = @import("std");
 
 const data = @embedFile("data/day15.txt");
-const split = std.mem.indexOfPosLinear(u8, data, 2500, "\n\n").?;
-const moves = std.mem.indexOfAnyPos(u8, data, split, "<>^v").?;
-const cols: usize = std.mem.indexOfScalar(u8, data[0..split], '\n').?;
-const rows: usize = (split + 1) / (cols + 1);
 const directions: [4][2]isize = .{ .{ -1, 0 }, .{ 0, 1 }, .{ 1, 0 }, .{ 0, -1 } };
 
-fn floodfill(r: isize, c: isize, seen: [][cols * 2]bool, map: [][cols * 2]u8, going: usize) void {
-    const ir: usize = @intCast(r);
-    const ic: usize = @intCast(c);
+fn floodfill(r: isize, c: isize, seen: [][]bool, map: [][]u8, going: usize) void {
+    const ur: usize = @intCast(r);
+    const uc: usize = @intCast(c);
 
-    if ((map[ir][ic] == '[' or map[ir][ic] == ']') and !seen[ir][ic]) {
-        seen[ir][ic] = true;
+    if ((map[ur][uc] == '[' or map[ur][uc] == ']') and !seen[ur][uc]) {
+        seen[ur][uc] = true;
 
         for (directions, 0..) |dir, i| {
-            if ((going == 0 and (i == 2 or (i == 1 and map[ir][ic] == ']') or (i == 3 and map[ir][ic] == '['))) or
-                (going == 2 and (i == 0 or (i == 1 and map[ir][ic] == ']') or (i == 3 and map[ir][ic] == '['))) or
+            if ((going == 0 and (i == 2 or (i == 1 and map[ur][uc] == ']') or (i == 3 and map[ur][uc] == '['))) or
+                (going == 2 and (i == 0 or (i == 1 and map[ur][uc] == ']') or (i == 3 and map[ur][uc] == '['))) or
                 (going == 1 and i != 1) or
                 (going == 3 and i != 3))
             {
@@ -38,13 +34,31 @@ fn getMove(m: u8) usize {
     };
 }
 
+fn fill2DWith(comptime T: type, x: [][]T, fill: T) void {
+    for (x) |y| {
+        @memset(y, @as(T, fill));
+    }
+}
+
 pub fn main() !void {
     const stdout = std.io.getStdOut().writer();
 
-    // part 1
-    var map: [rows][cols]u8 = std.mem.zeroes([rows][cols]u8);
-    var wide_map: [rows][cols * 2]u8 = std.mem.zeroes([rows][cols * 2]u8);
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    const allocator = arena.allocator();
+    defer _ = arena.deinit();
 
+    const split = std.mem.indexOf(u8, data, "\n\n").?;
+    const moves = std.mem.indexOfAny(u8, data, "<>^v").?;
+    const cols = std.mem.indexOfScalar(u8, data, '\n').?;
+    const rows: usize = (split + 1) / (cols + 1);
+
+    var map: [][]u8 = try allocator.alloc([]u8, rows);
+    var wide_map: [][]u8 = try allocator.alloc([]u8, rows);
+
+    for (map) |*x| x.* = try allocator.alloc(u8, cols);
+    for (wide_map) |*x| x.* = try allocator.alloc(u8, cols * 2);
+
+    // part 1
     var rc: isize = 0;
     var cc: isize = 0;
     var wide_rc: isize = 0;
@@ -127,6 +141,11 @@ pub fn main() !void {
     try stdout.print("1: {d}\n", .{out1});
 
     // part 2
+    const seen: [][]bool = try allocator.alloc([]bool, rows);
+    var replacement: [][]u8 = try allocator.alloc([]u8, rows);
+
+    for (seen) |*x| x.* = try allocator.alloc(bool, cols * 2);
+    for (replacement) |*x| x.* = try allocator.alloc(u8, cols * 2);
     for (data[moves..]) |move| {
         if (move == '\n') continue;
 
@@ -146,10 +165,10 @@ pub fn main() !void {
                 var r_check: isize = wide_rc + directions[dir][0];
                 var c_check: isize = wide_cc + directions[dir][1];
 
-                var seen: [rows][cols * 2]bool = std.mem.zeroes([rows][cols * 2]bool);
-                floodfill(r_check, c_check, &seen, &wide_map, dir);
+                fill2DWith(bool, seen, false);
+                fill2DWith(u8, replacement, 0);
+                floodfill(r_check, c_check, seen, wide_map, dir);
 
-                var replacement: [rows][cols * 2]u8 = std.mem.zeroes([rows][cols * 2]u8);
                 outer: for (0..rows) |r| {
                     for (0..cols * 2) |c| {
                         const ir: isize = @intCast(r);
@@ -174,7 +193,9 @@ pub fn main() !void {
                     wide_rc = r_next;
                     wide_cc = c_next;
 
-                    @memcpy(&wide_map, &replacement);
+                    for (0..wide_map.len) |i| {
+                        @memcpy(wide_map[i], replacement[i]);
+                    }
                 }
             },
         }
