@@ -1,0 +1,15 @@
+#!/bin/zsh
+
+if [[ $# -lt 1 || $1 -lt 1 || $1 -gt 25 ]] then
+    echo "Day not given or invalid."
+    exit 64
+fi
+
+printf -v day 'day%02d' $1
+
+if [[ -f "src/$day.py" ]] then 
+    echo "$day.py already exists."
+else
+    cat template.py | sed -e "s/\\\$/$day/g" > src/$day.py
+    touch src/data/$day.txt
+fi
